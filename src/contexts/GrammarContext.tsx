@@ -22,7 +22,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         finalGrammar.push(newRule[0]);
         const nonTerminal = newRule[0][0];
         for (let i = 1; i < newRule.length; i++) {
-            finalGrammar.push(`${nonTerminal}->${newRule[i]}`);
+          finalGrammar.push(`${nonTerminal}->${newRule[i]}`);
         }
       } else {
         finalGrammar.push(rule);
@@ -38,10 +38,12 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   );
 };
 
-export const useGrammar = function(){
-    const context = useContext(GrammarContext)
-    if(context == null) {
-        throw new Error("Cannot use Grammar context outside GrammarProvider context")
-    }
-    return context;
-}
+export const useGrammar = function () {
+  const context = useContext(GrammarContext);
+  if (context == null) {
+    throw new Error(
+      "Cannot use Grammar context outside GrammarProvider context"
+    );
+  }
+  return context;
+};

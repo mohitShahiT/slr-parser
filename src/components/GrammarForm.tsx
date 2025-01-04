@@ -13,7 +13,7 @@ export const GrammarForm = function(){
 
     const handleGrammarSubmit = function(e:React.FormEvent<HTMLFormElement>){
       e.preventDefault();
-      createGrammar(inputGrammar)
+      createGrammar(inputGrammar.replace(" ", ""));
 
     }
 
