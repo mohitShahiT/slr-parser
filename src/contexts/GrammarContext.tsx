@@ -12,41 +12,36 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [grammar, setGrammar] = useState<string[][]>([]);
 
   function createGrammar(rawGrammar: string) {
-    // const newGrammar = rawGrammar.replace(/\s+/g, " ").split(" ");
-    const newGrammar = rawGrammar.replace(/\s+/g, " ").trim().split(" ");
+    // Normalize whitespace and fix additional spaces around grammar symbols
+    const normalizedGrammar = rawGrammar
+      .replace(/\s*->\s*/g, " -> ") // Normalize spaces around "->"
+      .replace(/\s*\|\s*/g, " | ") // Normalize spaces around "|"
+      .replace(/\s+/g, " ") // Replace multiple spaces with a single space
+      .trim();
 
-    console.log(`Raw grammar is ${rawGrammar}`);
-    console.log(`new Grammar is ${newGrammar}`);
+    const rules = normalizedGrammar.split(/ (?=[A-Z]+ ->)/); // Split rules based on "LHS ->"
+
     const finalGrammar: string[][] = [];
 
-    newGrammar.forEach((rule) => {
-      const [lhs, rhs] = rule.split("->");
-      if (rhs.includes("|")) {
-        const multiRHS = rhs.split("|");
-        for (const rhsi of multiRHS) {
-          finalGrammar.push([lhs, rhsi]);
-        }
-      } else {
-        finalGrammar.push([lhs, rhs]);
+    rules.forEach((rule) => {
+      const [lhs, rhs] = rule.split("->").map((part) => part.trim()); // Split LHS and RHS
+
+      if (!lhs || !rhs) {
+        console.warn(`Skipping invalid rule: ${rule}`);
+        return; // Skip invalid rules without throwing an error
       }
-      setGrammar(finalGrammar);
+
+      // Split RHS by "|" to handle multiple options
+      const rhsOptions = rhs.split("|").map((option) => option.trim());
+
+      rhsOptions.forEach((rhsi) => {
+        finalGrammar.push([lhs, rhsi]);
+      });
     });
 
-    console.log(finalGrammar);
-
-    // newGrammar.forEach((rule) => {
-    //   if (rule.includes("|")) {
-    //     const newRule = rule.split("|");
-    //     finalGrammar.push(newRule[0]);
-    //     const nonTerminal = newRule[0][0];
-    //     for (let i = 1; i < newRule.length; i++) {
-    //       finalGrammar.push(`${nonTerminal}->${newRule[i]}`);
-    //     }
-    //   } else {
-    //     finalGrammar.push(rule);
-    //   }
-    // });
-    // setGrammar(finalGrammar);
+    // Finalize grammar
+    setGrammar(finalGrammar);
+    console.log("Final Grammar:", finalGrammar);
   }
 
   return (
