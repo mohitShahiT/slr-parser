@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-
+import { Grammar } from "../types/types";
 interface GrammarProviderProps {
-  grammar: string[];
+  grammar: Grammar;
   createGrammar: (rawGrammar: string) => void;
 }
 const GrammarContext = createContext<GrammarProviderProps | null>(null);
@@ -9,7 +9,7 @@ const GrammarContext = createContext<GrammarProviderProps | null>(null);
 export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   children,
 }) {
-  const [grammar, setGrammar] = useState<string[][]>([]);
+  const [grammar, setGrammar] = useState<Grammar>([]);
 
   function createGrammar(rawGrammar: string) {
     // const newGrammar = rawGrammar.replace(/\s+/g, " ").split(" ");
@@ -17,7 +17,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     console.log(`Raw grammar is ${rawGrammar}`);
     console.log(`new Grammar is ${newGrammar}`);
-    const finalGrammar: string[][] = [];
+    const finalGrammar: Grammar = [];
 
     newGrammar.forEach((rule) => {
       const [lhs, rhs] = rule.split("->");
