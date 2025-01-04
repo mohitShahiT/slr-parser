@@ -14,7 +14,7 @@ export const GrammarForm = function () {
   const handleGrammarSubmit = function (e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     console.log(inputGrammar);
-    createGrammar(inputGrammar.replace(/\s+/g, ""));
+    createGrammar(inputGrammar);
   };
 
   return (

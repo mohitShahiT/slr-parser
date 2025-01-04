@@ -9,26 +9,44 @@ const GrammarContext = createContext<GrammarProviderProps | null>(null);
 export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   children,
 }) {
-  const [grammar, setGrammar] = useState<string[]>([]);
+  const [grammar, setGrammar] = useState<string[][]>([]);
 
   function createGrammar(rawGrammar: string) {
-    const newGrammar = rawGrammar.split("\n");
+    // const newGrammar = rawGrammar.replace(/\s+/g, " ").split(" ");
+    const newGrammar = rawGrammar.replace(/\s+/g, " ").trim().split(" ");
 
-    const finalGrammar: string[] = [];
+    console.log(`Raw grammar is ${rawGrammar}`);
+    console.log(`new Grammar is ${newGrammar}`);
+    const finalGrammar: string[][] = [];
 
     newGrammar.forEach((rule) => {
-      if (rule.includes("|")) {
-        const newRule = rule.split("|");
-        finalGrammar.push(newRule[0]);
-        const nonTerminal = newRule[0][0];
-        for (let i = 1; i < newRule.length; i++) {
-          finalGrammar.push(`${nonTerminal}->${newRule[i]}`);
+      const [lhs, rhs] = rule.split("->");
+      if (rhs.includes("|")) {
+        const multiRHS = rhs.split("|");
+        for (const rhsi of multiRHS) {
+          finalGrammar.push([lhs, rhsi]);
         }
       } else {
-        finalGrammar.push(rule);
+        finalGrammar.push([lhs, rhs]);
       }
+      setGrammar(finalGrammar);
     });
-    setGrammar(finalGrammar);
+
+    console.log(finalGrammar);
+
+    // newGrammar.forEach((rule) => {
+    //   if (rule.includes("|")) {
+    //     const newRule = rule.split("|");
+    //     finalGrammar.push(newRule[0]);
+    //     const nonTerminal = newRule[0][0];
+    //     for (let i = 1; i < newRule.length; i++) {
+    //       finalGrammar.push(`${nonTerminal}->${newRule[i]}`);
+    //     }
+    //   } else {
+    //     finalGrammar.push(rule);
+    //   }
+    // });
+    // setGrammar(finalGrammar);
   }
 
   return (
