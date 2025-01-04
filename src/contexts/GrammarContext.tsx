@@ -21,13 +21,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     const rules = normalizedGrammar.split(/ (?=[A-Z]+ ->)/); // Split rules based on "LHS ->"
 
-<<<<<<< HEAD
-    const finalGrammar: string[][] = [];
-=======
-    console.log(`Raw grammar is ${rawGrammar}`);
-    console.log(`new Grammar is ${newGrammar}`);
     const finalGrammar: Grammar = [];
->>>>>>> 3853a2c1799bcfb1500916f8066d3c56ec2aa03f
 
     rules.forEach((rule) => {
       const [lhs, rhs] = rule.split("->").map((part) => part.trim()); // Split LHS and RHS
