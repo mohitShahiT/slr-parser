@@ -1,5 +1,10 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-import { FirstFollow, Grammar, TerminalandNonTerminal } from "../types/types";
+import {
+  FirstFollow,
+  Grammar,
+  TerminalandNonTerminal,
+  Closure,
+} from "../types/types";
 
 interface GrammarProviderProps {
   grammar: Grammar;
@@ -10,6 +15,12 @@ interface GrammarProviderProps {
   augmentedGrammar: Grammar;
   createGrammar: (rawGrammar: string) => void;
 }
+
+/*
+E -> E + T | T
+T -> T * F | F
+F -> (E) | id
+*/
 
 interface LRItem {
   first: FirstFollow;
@@ -28,6 +39,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [first, setFirst] = useState<Record<string, Set<string>>>({});
   const [follow, setFollow] = useState<Record<string, Set<string>>>({});
   const [augmentedGrammar, setAugmentedGrammar] = useState<Grammar>([]);
+  const [closures, setClosures] = useState<Closure>({});
 
   function augmentGrammarWithDot(
     originalGrammar: Grammar,
@@ -56,7 +68,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         return [lhs, augmentedRhs];
       }
     );
-    console.log(augmentedRules);
+    console.log("augmentedRules", augmentedRules);
 
     // Step 5: Combine the new start rule with the augmented original grammar
     const augmentedGrammar: Grammar = [augmentedStartRule, ...augmentedRules];
@@ -108,7 +120,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setNonTerminals([...nonTerminalElements]);
     const prefix = "•"; // Example prefix (e.g., a dot or another marker)
     const newAugmentedGrammar = augmentGrammarWithDot(finalGrammar, prefix);
-    console.log(newAugmentedGrammar);
+    console.log("new Augmented Grammar", newAugmentedGrammar);
     setAugmentedGrammar(newAugmentedGrammar);
     // here
 
@@ -121,6 +133,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       ...nonTerminalElements,
     ]);
 
+    findClosure(newAugmentedGrammar, [...nonTerminalElements]);
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
     console.log("Non-terminals:", [...nonTerminalElements]);
@@ -270,28 +283,47 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       });
     }
     setFollow(followSets);
-<<<<<<< HEAD
-
-    function findClosure(augmentedGrammar: Grammar) {
-      const closures: Record<string, Grammar> = {};
-      nonTerminals.forEach((symbol) => {
-        closures[symbol] = [];
-      });
-      console.log(closures);
-      augmentedGrammar.forEach((gm) => {
-        for (let symbol in closures) {
-          console.log(symbol, gm[0]);
-          if (symbol === gm[0]) {
-            closures[symbol] = [...closures[symbol], gm];
-          }
-        }
-      });
-      console.log(closures);
-    }
-    findClosure(augmentedGrammar);
-=======
     return followSets;
->>>>>>> 83a09a8 (state and goto types)
+  }
+
+  function findClosure(
+    augmentedGrammar: Grammar,
+    nonTerminalElements: TerminalandNonTerminal
+  ) {
+    const closures: Closure = {};
+    nonTerminalElements.forEach((symbol) => {
+      closures[symbol] = [];
+    });
+    console.log(closures, augmentedGrammar);
+    augmentedGrammar.forEach((gm) => {
+      for (const symbol in closures) {
+        if (symbol === gm[0]) {
+          closures[symbol] = [...closures[symbol], gm];
+        }
+      }
+    });
+
+    let updated = true;
+    while (updated) {
+      updated = false;
+      console.log("update");
+      for (const symbol in closures) {
+        let newClosure: Grammar = [];
+        closures[symbol].forEach(([_, rule]) => {
+          if (nonTerminalElements.includes(rule[1])) {
+            newClosure = [...closures[symbol], ...closures[rule[1]]];
+          }
+        });
+        const unique = Array.from(new Set(newClosure));
+        if (unique.length > closures[symbol].length) {
+          closures[symbol] = unique;
+          updated = true;
+        }
+      }
+    }
+
+    setClosures(closures);
+    console.log("closures", closures);
   }
 
   return (
