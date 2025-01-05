@@ -44,7 +44,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     // Step 2: Define a new start symbol (e.g., `S'`)
     const newStartSymbol = `${originalStartSymbol}'`;
 
-    // Step 3: Create the augmented start rule with the dot
     const augmentedStartRule: [string, string] = [
       newStartSymbol,
       `${prefix}${originalStartSymbol}`,
