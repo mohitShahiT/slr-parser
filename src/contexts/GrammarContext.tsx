@@ -50,10 +50,13 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     ];
 
     // Step 4: Add the dot at the beginning of every RHS in the original grammar
-    const augmentedRules = originalGrammar.map(([lhs, rhs]) => {
-      const augmentedRhs = `${prefix}${rhs}`; // Add the dot to the beginning of the RHS
-      return [lhs, augmentedRhs];
-    });
+    const augmentedRules: [string, string][] = originalGrammar.map(
+      ([lhs, rhs]) => {
+        const augmentedRhs = `${prefix}${rhs}`; // Add the dot to the beginning of the RHS
+        return [lhs, augmentedRhs];
+      }
+    );
+    console.log(augmentedRules);
 
     // Step 5: Combine the new start rule with the augmented original grammar
     const augmentedGrammar: Grammar = [augmentedStartRule, ...augmentedRules];
