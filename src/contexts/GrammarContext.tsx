@@ -7,7 +7,14 @@ interface GrammarProviderProps {
   nonTerminals: TerminalandNonTerminal;
   first: Record<string, Set<string>>;
   follow: Record<string, Set<string>>;
+  augmentedGrammar: Grammar;
   createGrammar: (rawGrammar: string) => void;
+}
+
+interface LRItem {
+  lhs: string;
+  rhs: string;
+  dotPosition: number;
 }
 
 const GrammarContext = createContext<GrammarProviderProps | null>(null);
@@ -20,6 +27,40 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [nonTerminals, setNonTerminals] = useState<TerminalandNonTerminal>([]);
   const [first, setFirst] = useState<Record<string, Set<string>>>({});
   const [follow, setFollow] = useState<Record<string, Set<string>>>({});
+  const [augmentedGrammar, setAugmentedGrammar] = useState<Grammar>([]);
+
+  function augmentGrammarWithDot(
+    originalGrammar: Grammar,
+    prefix: string
+  ): Grammar {
+    if (originalGrammar.length === 0) {
+      console.error("The grammar is empty and cannot be augmented.");
+      return [];
+    }
+
+    // Step 1: Get the original start symbol (LHS of the first production)
+    const originalStartSymbol = originalGrammar[0][0];
+
+    // Step 2: Define a new start symbol (e.g., `S'`)
+    const newStartSymbol = `${originalStartSymbol}'`;
+
+    // Step 3: Create the augmented start rule with the dot
+    const augmentedStartRule: [string, string] = [
+      newStartSymbol,
+      `${prefix}${originalStartSymbol}`,
+    ];
+
+    // Step 4: Add the dot at the beginning of every RHS in the original grammar
+    const augmentedRules = originalGrammar.map(([lhs, rhs]) => {
+      const augmentedRhs = `${prefix}${rhs}`; // Add the dot to the beginning of the RHS
+      return [lhs, augmentedRhs];
+    });
+
+    // Step 5: Combine the new start rule with the augmented original grammar
+    const augmentedGrammar: Grammar = [augmentedStartRule, ...augmentedRules];
+
+    return augmentedGrammar;
+  }
 
   function createGrammar(rawGrammar: string) {
     const terminalElements: Set<string> = new Set();
@@ -63,9 +104,22 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setGrammar(finalGrammar);
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
+    const prefix = "•"; // Example prefix (e.g., a dot or another marker)
+    const newAugmentedGrammar = augmentGrammarWithDot(finalGrammar, prefix);
+    console.log(newAugmentedGrammar);
+    setAugmentedGrammar(newAugmentedGrammar);
+    // here
 
-    calculateFirst(finalGrammar, [...terminalElements], [...nonTerminalElements]);
-    calculateFollow(finalGrammar, [...terminalElements], [...nonTerminalElements]);
+    calculateFirst(
+      finalGrammar,
+      [...terminalElements],
+      [...nonTerminalElements]
+    );
+    calculateFollow(
+      finalGrammar,
+      [...terminalElements],
+      [...nonTerminalElements]
+    );
 
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
@@ -114,10 +168,9 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     grammar: Grammar,
     terminals: string[],
     nonTerminals: string[]
-  ) 
-  {
+  ) {
     const firstSets: Record<string, Set<string>> = {};
-  
+
     // Initialize FIRST sets for all terminals and non-terminals
     terminals.forEach((terminal) => {
       firstSets[terminal] = new Set([terminal]); // FIRST(terminal) = {terminal}
@@ -125,22 +178,22 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     nonTerminals.forEach((nonTerminal) => {
       firstSets[nonTerminal] = new Set(); // Initialize empty FIRST(non-terminal)
     });
-  
+
     let changed = true;
-  
+
     // Iteratively compute FIRST sets until stable
     while (changed) {
       changed = false;
-  
+
       for (const [lhs, rhs] of grammar) {
         const firstLHS = firstSets[lhs];
         const oldSize = firstLHS.size;
-  
+
         const rhsTokens = tokenizeRHS(rhs);
-  
+
         for (let i = 0; i < rhsTokens.length; i++) {
           const token = rhsTokens[i];
-  
+
           // Add FIRST(token) to FIRST(lhs), excluding ε
           if (firstSets[token]) {
             for (const item of firstSets[token]) {
@@ -149,28 +202,26 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
               }
             }
           }
-  
+
           // Stop if token does not derive ε
           if (!firstSets[token]?.has("ε")) {
             break;
           }
-  
+
           // If token derives ε and it's the last token, add ε to FIRST(lhs)
           if (i === rhsTokens.length - 1) {
             firstLHS.add("ε");
           }
         }
-  
+
         if (firstLHS.size > oldSize) {
           changed = true;
         }
       }
     }
-  
+
     setFirst(firstSets);
-    
   }
-    
 
   function calculateFollow(
     grammar: Grammar,
@@ -223,7 +274,15 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
   return (
     <GrammarContext.Provider
-      value={{ grammar, terminals, nonTerminals, first, follow, createGrammar }}
+      value={{
+        grammar,
+        terminals,
+        nonTerminals,
+        first,
+        follow,
+        createGrammar,
+        augmentedGrammar,
+      }}
     >
       {children}
     </GrammarContext.Provider>
