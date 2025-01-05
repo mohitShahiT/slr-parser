@@ -266,6 +266,24 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       });
     }
     setFollow(followSets);
+
+    function findClosure(augmentedGrammar: Grammar) {
+      const closures: Record<string, Grammar> = {};
+      nonTerminals.forEach((symbol) => {
+        closures[symbol] = [];
+      });
+      console.log(closures);
+      augmentedGrammar.forEach((gm) => {
+        for (let symbol in closures) {
+          console.log(symbol, gm[0]);
+          if (symbol === gm[0]) {
+            closures[symbol] = [...closures[symbol], gm];
+          }
+        }
+      });
+      console.log(closures);
+    }
+    findClosure(augmentedGrammar);
   }
 
   return (
