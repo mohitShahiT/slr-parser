@@ -9,7 +9,12 @@ interface GrammarProviderProps {
   follow: FirstFollow;
   createGrammar: (rawGrammar: string) => void;
 }
-
+//example grammar
+/*
+E -> E + T | T
+T -> T * F | F
+F -> (E) | id
+*/
 const GrammarContext = createContext<GrammarProviderProps | null>(null);
 
 export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
@@ -18,10 +23,10 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [grammar, setGrammar] = useState<Grammar>([]);
   const [terminals, setTerminals] = useState<TerminalandNonTerminal>([]);
   const [nonTerminals, setNonTerminals] = useState<TerminalandNonTerminal>([]);
-  const [first, setFirst] = useState<Record<string, Set<string>>>({});
-  const [follow, setFollow] = useState<Record<string, Set<string>>>({});
+  const [first, setFirst] = useState<FirstFollow>({});
+  const [follow, setFollow] = useState<FirstFollow>({});
 
-  function createGrammar(rawGrammar: string) {
+  async function createGrammar(rawGrammar: string) {
     const terminalElements: Set<string> = new Set();
     const nonTerminalElements: Set<string> = new Set();
 
@@ -64,8 +69,12 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
 
-    calculateFirst(finalGrammar, [...terminalElements], [...nonTerminalElements]);
-    calculateFollow(finalGrammar, [...terminalElements], [...nonTerminalElements]);
+    const newFirst = await calculateFirst(
+      finalGrammar,
+      [...terminalElements],
+      [...nonTerminalElements]
+    );
+    calculateFollow(finalGrammar, newFirst, [...nonTerminalElements]);
 
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
@@ -110,14 +119,13 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return tokens;
   }
 
-  function calculateFirst(
+  async function calculateFirst(
     grammar: Grammar,
     terminals: string[],
     nonTerminals: string[]
-  ) 
-  {
-    const firstSets: Record<string, Set<string>> = {};
-  
+  ) {
+    const firstSets: FirstFollow = {};
+
     // Initialize FIRST sets for all terminals and non-terminals
     terminals.forEach((terminal) => {
       firstSets[terminal] = new Set([terminal]); // FIRST(terminal) = {terminal}
@@ -125,22 +133,22 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     nonTerminals.forEach((nonTerminal) => {
       firstSets[nonTerminal] = new Set(); // Initialize empty FIRST(non-terminal)
     });
-  
+
     let changed = true;
-  
+
     // Iteratively compute FIRST sets until stable
     while (changed) {
       changed = false;
-  
+
       for (const [lhs, rhs] of grammar) {
         const firstLHS = firstSets[lhs];
         const oldSize = firstLHS.size;
-  
+
         const rhsTokens = tokenizeRHS(rhs);
-  
+
         for (let i = 0; i < rhsTokens.length; i++) {
           const token = rhsTokens[i];
-  
+
           // Add FIRST(token) to FIRST(lhs), excluding ε
           if (firstSets[token]) {
             for (const item of firstSets[token]) {
@@ -149,35 +157,34 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
               }
             }
           }
-  
+
           // Stop if token does not derive ε
           if (!firstSets[token]?.has("ε")) {
             break;
           }
-  
+
           // If token derives ε and it's the last token, add ε to FIRST(lhs)
           if (i === rhsTokens.length - 1) {
             firstLHS.add("ε");
           }
         }
-  
+
         if (firstLHS.size > oldSize) {
           changed = true;
         }
       }
     }
-  
-    setFirst(firstSets);
-    
+
+    setFirst(() => firstSets);
+    return firstSets;
   }
-    
 
   function calculateFollow(
     grammar: Grammar,
-    terminals: string[],
+    first: FirstFollow,
     nonTerminals: string[]
   ) {
-    const followSets: Record<string, Set<string>> = {};
+    const followSets: FirstFollow = {};
 
     nonTerminals.forEach((nt) => {
       followSets[nt] = new Set();
@@ -217,7 +224,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         }
       });
     }
-
     setFollow(followSets);
   }
 
