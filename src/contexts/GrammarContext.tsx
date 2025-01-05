@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-import { Grammar, TerminalandNonTerminal } from "../types/types";
+import { FirstFollow, Grammar, TerminalandNonTerminal } from "../types/types";
 
 interface GrammarProviderProps {
   grammar: Grammar;
@@ -12,9 +12,9 @@ interface GrammarProviderProps {
 }
 
 interface LRItem {
-  lhs: string;
-  rhs: string;
-  dotPosition: number;
+  first: FirstFollow;
+  follow: FirstFollow;
+  createGrammar: (rawGrammar: string) => void;
 }
 
 const GrammarContext = createContext<GrammarProviderProps | null>(null);
@@ -62,7 +62,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return augmentedGrammar;
   }
 
-  function createGrammar(rawGrammar: string) {
+  async function createGrammar(rawGrammar: string) {
     const terminalElements: Set<string> = new Set();
     const nonTerminalElements: Set<string> = new Set();
 
@@ -110,16 +110,12 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setAugmentedGrammar(newAugmentedGrammar);
     // here
 
-    calculateFirst(
+    const newFirst = await calculateFirst(
       finalGrammar,
       [...terminalElements],
       [...nonTerminalElements]
     );
-    calculateFollow(
-      finalGrammar,
-      [...terminalElements],
-      [...nonTerminalElements]
-    );
+    calculateFollow(finalGrammar, newFirst, [...nonTerminalElements]);
 
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
@@ -164,12 +160,12 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return tokens;
   }
 
-  function calculateFirst(
+  async function calculateFirst(
     grammar: Grammar,
     terminals: string[],
     nonTerminals: string[]
   ) {
-    const firstSets: Record<string, Set<string>> = {};
+    const firstSets: FirstFollow = {};
 
     // Initialize FIRST sets for all terminals and non-terminals
     terminals.forEach((terminal) => {
@@ -220,15 +216,16 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       }
     }
 
-    setFirst(firstSets);
+    setFirst(() => firstSets);
+    return firstSets;
   }
 
   function calculateFollow(
     grammar: Grammar,
-    terminals: string[],
+    first: FirstFollow,
     nonTerminals: string[]
   ) {
-    const followSets: Record<string, Set<string>> = {};
+    const followSets: FirstFollow = {};
 
     nonTerminals.forEach((nt) => {
       followSets[nt] = new Set();
@@ -268,7 +265,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         }
       });
     }
-
     setFollow(followSets);
   }
 

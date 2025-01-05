@@ -28,30 +28,39 @@ export const GrammarForm = function () {
   };
 
   return (
-    <>
-      <form onSubmit={handleGrammarSubmit}>
-        <label htmlFor="grammar">Enter Grammar:</label>
+      <>
+          <div className= "leftcontainer flex items-center justify-center">
+        <label htmlFor="grammar"><b>Enter Grammar:</b></label>
+        <form onSubmit={handleGrammarSubmit}>
+
         <textarea
-          className="border-solid border-2 border-sky-500"
-          id="grammar"
-          value={inputGrammar}
-          onChange={handleGrammarChange}
-          rows={5}
-          cols={30}
-          placeholder="Type the grammar here..."
+            className="border-solid border-2 border-sky-500"
+            id="grammar"
+            value={inputGrammar}
+            onChange={handleGrammarChange}
+            rows={5}
+            cols={30}
+            placeholder="Type the grammar here..."
         />
-        <button className="border-solid border-2 border-sky-500" type="submit">
-          Enter
-        </button>
-      </form>
-      <div className="mt-4">
-        <h3 className="font-bold">FIRST Sets:</h3>
-        <div className="ml-4">{renderSet(first)}</div>
-      </div>
-      <div className="mt-4">
-        <h3 className="font-bold">FOLLOW Sets:</h3>
-        <div className="ml-4">{renderSet(follow)}</div>
-      </div>
-    </>
+            <br/>
+            <div className= "flex items-center justify-center">
+                <button
+                    className="bg-transparent hover:bg-purple-400 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-purple-300 hover:border-transparent rounded "
+                    type="submit">
+                    Enter
+                </button>
+            </div>
+
+        </form>
+              <div className="mt-4">
+                  <h3 className="font-bold">FIRST Sets:</h3>
+                  <div className="ml-4">{renderSet(first)}</div>
+              </div>
+              <div className="mt-4">
+              <h3 className="font-bold">FOLLOW Sets:</h3>
+          <div className="ml-4">{renderSet(follow)}</div>
+        </div>
+          </div>
+      </>
   );
 };
