@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-import {FirstFollow, Grammar, TerminalandNonTerminal} from "../types/types";
+import { FirstFollow, Grammar, TerminalandNonTerminal } from "../types/types";
 
 interface GrammarProviderProps {
   grammar: Grammar;
