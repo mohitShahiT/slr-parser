@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  background-color: #F5EFFF;
+}
+.title-holder{
+  background-color: #A294F9;
+  height: 70px;
+  align-content: center;
+  margin-bottom: 50px;
+}
