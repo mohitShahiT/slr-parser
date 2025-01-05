@@ -14,8 +14,11 @@ body {
 .leftcontainer{
   display: flex;
   flex-direction: column;
+  justify-content: center;
   padding-left: 20px;
 }
 .middleman{
+  justify-content: center;
   flex: 1;
+  
 }

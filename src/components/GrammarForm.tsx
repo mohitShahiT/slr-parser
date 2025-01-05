@@ -29,7 +29,7 @@ export const GrammarForm = function () {
 
   return (
       <>
-          <div className= "leftcontainer">
+          <div className= "leftcontainer flex items-center justify-center">
         <label htmlFor="grammar"><b>Enter Grammar:</b></label>
         <form onSubmit={handleGrammarSubmit}>
 
@@ -43,9 +43,9 @@ export const GrammarForm = function () {
             placeholder="Type the grammar here..."
         />
             <br/>
-            <div className= "middleman">
+            <div className= "flex items-center justify-center">
                 <button
-                    className="bg-transparent hover:bg-purple-400 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-purple-300 hover:border-transparent rounded"
+                    className="bg-transparent hover:bg-purple-400 text-blue-700 font-semibold hover:text-white py-2 px-4 border border-purple-300 hover:border-transparent rounded "
                     type="submit">
                     Enter
                 </button>
