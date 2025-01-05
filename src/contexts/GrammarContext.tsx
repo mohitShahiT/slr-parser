@@ -5,6 +5,8 @@ interface GrammarProviderProps {
   grammar: Grammar;
   terminals: TerminalandNonTerminal;
   nonTerminals: TerminalandNonTerminal;
+  first: Record<string, Set<string>>;
+  follow: Record<string, Set<string>>;
   createGrammar: (rawGrammar: string) => void;
 }
 
@@ -16,19 +18,19 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [grammar, setGrammar] = useState<Grammar>([]);
   const [terminals, setTerminals] = useState<TerminalandNonTerminal>([]);
   const [nonTerminals, setNonTerminals] = useState<TerminalandNonTerminal>([]);
+  const [first, setFirst] = useState<Record<string, Set<string>>>({});
+  const [follow, setFollow] = useState<Record<string, Set<string>>>({});
 
   function createGrammar(rawGrammar: string) {
     const terminalElements: Set<string> = new Set();
     const nonTerminalElements: Set<string> = new Set();
 
-    // Normalize whitespace and fix additional spaces around grammar symbols
     const normalizedGrammar = rawGrammar
-      .replace(/\s*->\s*/g, " -> ") // Normalize spaces around "->"
-      .replace(/\s*\|\s*/g, " | ") // Normalize spaces around "|"
-      .replace(/\s+/g, " ") // Replace multiple spaces with a single space
+      .replace(/\s*->\s*/g, " -> ")
+      .replace(/\s*\|\s*/g, " | ")
+      .replace(/\s+/g, " ")
       .trim();
 
-    // Split rules based on uppercase letters followed by "->"
     const rules = normalizedGrammar.split(/ (?=[A-Z]+ ->)/);
     const finalGrammar: Grammar = [];
 
@@ -40,23 +42,18 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         return;
       }
 
-      // Add LHS to non-terminals
       nonTerminalElements.add(lhs);
 
-      // Split RHS by "|" to handle multiple options
       const rhsOptions = rhs.split("|").map((option) => option.trim());
 
       rhsOptions.forEach((rhsOption) => {
         finalGrammar.push([lhs, rhsOption]);
 
-        // Process RHS to identify terminals and non-terminals
         const tokens = tokenizeRHS(rhsOption);
         tokens.forEach((token) => {
-          // If token is uppercase, it's a non-terminal
           if (/^[A-Z]+$/.test(token)) {
             nonTerminalElements.add(token);
           } else {
-            // If token is not a non-terminal, it's a terminal
             terminalElements.add(token);
           }
         });
@@ -67,12 +64,16 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
 
+    calculateFirst(finalGrammar, [...terminalElements], [...nonTerminalElements]);
+    calculateFollow(finalGrammar, [...terminalElements], [...nonTerminalElements]);
+
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
     console.log("Non-terminals:", [...nonTerminalElements]);
+    console.log("FIRST:", first);
+    console.log("FOLLOW:", follow);
   }
 
-  // Helper function to tokenize RHS of grammar rules
   function tokenizeRHS(rhs: string): string[] {
     const tokens: string[] = [];
     let currentToken = "";
@@ -87,14 +88,12 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
           currentToken = "";
         }
       } else if (/[A-Z]/.test(char)) {
-        // Handle non-terminals (uppercase letters)
         if (currentToken && !/[A-Z]/.test(currentToken[0])) {
           tokens.push(currentToken);
           currentToken = "";
         }
         currentToken += char;
       } else {
-        // Handle terminals
         if (currentToken && /[A-Z]/.test(currentToken[0])) {
           tokens.push(currentToken);
           currentToken = "";
@@ -111,9 +110,120 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return tokens;
   }
 
+  function calculateFirst(
+    grammar: Grammar,
+    terminals: string[],
+    nonTerminals: string[]
+  ) 
+  {
+    const firstSets: Record<string, Set<string>> = {};
+  
+    // Initialize FIRST sets for all terminals and non-terminals
+    terminals.forEach((terminal) => {
+      firstSets[terminal] = new Set([terminal]); // FIRST(terminal) = {terminal}
+    });
+    nonTerminals.forEach((nonTerminal) => {
+      firstSets[nonTerminal] = new Set(); // Initialize empty FIRST(non-terminal)
+    });
+  
+    let changed = true;
+  
+    // Iteratively compute FIRST sets until stable
+    while (changed) {
+      changed = false;
+  
+      for (const [lhs, rhs] of grammar) {
+        const firstLHS = firstSets[lhs];
+        const oldSize = firstLHS.size;
+  
+        const rhsTokens = tokenizeRHS(rhs);
+  
+        for (let i = 0; i < rhsTokens.length; i++) {
+          const token = rhsTokens[i];
+  
+          // Add FIRST(token) to FIRST(lhs), excluding ε
+          if (firstSets[token]) {
+            for (const item of firstSets[token]) {
+              if (item !== "ε") {
+                firstLHS.add(item);
+              }
+            }
+          }
+  
+          // Stop if token does not derive ε
+          if (!firstSets[token]?.has("ε")) {
+            break;
+          }
+  
+          // If token derives ε and it's the last token, add ε to FIRST(lhs)
+          if (i === rhsTokens.length - 1) {
+            firstLHS.add("ε");
+          }
+        }
+  
+        if (firstLHS.size > oldSize) {
+          changed = true;
+        }
+      }
+    }
+  
+    setFirst(firstSets);
+    
+  }
+    
+
+  function calculateFollow(
+    grammar: Grammar,
+    terminals: string[],
+    nonTerminals: string[]
+  ) {
+    const followSets: Record<string, Set<string>> = {};
+
+    nonTerminals.forEach((nt) => {
+      followSets[nt] = new Set();
+    });
+    followSets[grammar[0][0]].add("$");
+
+    let updated = true;
+    while (updated) {
+      updated = false;
+
+      grammar.forEach(([lhs, rhs]) => {
+        const tokens = tokenizeRHS(rhs);
+        for (let i = 0; i < tokens.length; i++) {
+          const token = tokens[i];
+          if (nonTerminals.includes(token)) {
+            const followToken = followSets[token];
+            const beforeSize = followToken.size;
+
+            for (let j = i + 1; j < tokens.length; j++) {
+              const nextToken = tokens[j];
+              const nextFirst = first[nextToken];
+              nextFirst.forEach((item) => {
+                if (item !== "ε") followToken.add(item);
+              });
+
+              if (!nextFirst.has("ε")) break;
+            }
+
+            if (i === tokens.length - 1 || first[tokens[i + 1]].has("ε")) {
+              followSets[lhs].forEach((item) => {
+                followToken.add(item);
+              });
+            }
+
+            if (followToken.size > beforeSize) updated = true;
+          }
+        }
+      });
+    }
+
+    setFollow(followSets);
+  }
+
   return (
     <GrammarContext.Provider
-      value={{ grammar, terminals, nonTerminals, createGrammar }}
+      value={{ grammar, terminals, nonTerminals, first, follow, createGrammar }}
     >
       {children}
     </GrammarContext.Provider>
