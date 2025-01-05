@@ -11,3 +11,11 @@ body {
   align-content: center;
   margin-bottom: 50px;
 }
+.leftcontainer{
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+}
+.middleman{
+  flex: 1;
+}
