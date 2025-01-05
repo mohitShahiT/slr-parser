@@ -114,13 +114,15 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       [...terminalElements],
       [...nonTerminalElements]
     );
-    calculateFollow(finalGrammar, newFirst, [...nonTerminalElements]);
+    const newFollow = await calculateFollow(finalGrammar, newFirst, [
+      ...nonTerminalElements,
+    ]);
 
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
     console.log("Non-terminals:", [...nonTerminalElements]);
-    console.log("FIRST:", first);
-    console.log("FOLLOW:", follow);
+    console.log("FIRST:", newFirst);
+    console.log("FOLLOW:", newFollow);
   }
 
   function tokenizeRHS(rhs: string): string[] {
@@ -219,7 +221,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return firstSets;
   }
 
-  function calculateFollow(
+  async function calculateFollow(
     grammar: Grammar,
     first: FirstFollow,
     nonTerminals: string[]
@@ -265,6 +267,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       });
     }
     setFollow(followSets);
+<<<<<<< HEAD
 
     function findClosure(augmentedGrammar: Grammar) {
       const closures: Record<string, Grammar> = {};
@@ -283,6 +286,9 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       console.log(closures);
     }
     findClosure(augmentedGrammar);
+=======
+    return followSets;
+>>>>>>> 83a09a8 (state and goto types)
   }
 
   return (
