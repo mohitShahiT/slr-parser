@@ -3,7 +3,7 @@ import { useGrammar } from "../contexts/GrammarContext";
 
 export const GrammarForm = function () {
   const [inputGrammar, setInputGrammar] = useState("");
-  const { createGrammar } = useGrammar();
+  const { createGrammar, first, follow } = useGrammar();
 
   const handleGrammarChange = function (
     e: React.ChangeEvent<HTMLTextAreaElement>
@@ -13,8 +13,18 @@ export const GrammarForm = function () {
 
   const handleGrammarSubmit = function (e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    console.log(inputGrammar);
+    console.log("Input Grammar:", inputGrammar);
     createGrammar(inputGrammar);
+  };
+
+  const renderSet = (set: Record<string, Set<string>>) => {
+    return Object.entries(set).map(([key, values]) => (
+      <div key={key}>
+        <strong>{key}:</strong> {"{"}
+        {Array.from(values).join(", ")}
+        {"}"}
+      </div>
+    ));
   };
 
   return (
@@ -34,6 +44,14 @@ export const GrammarForm = function () {
           Enter
         </button>
       </form>
+      <div className="mt-4">
+        <h3 className="font-bold">FIRST Sets:</h3>
+        <div className="ml-4">{renderSet(first)}</div>
+      </div>
+      <div className="mt-4">
+        <h3 className="font-bold">FOLLOW Sets:</h3>
+        <div className="ml-4">{renderSet(follow)}</div>
+      </div>
     </>
   );
 };
