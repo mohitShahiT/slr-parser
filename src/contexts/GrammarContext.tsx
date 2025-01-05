@@ -1,12 +1,12 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-import { Grammar, TerminalandNonTerminal } from "../types/types";
+import { FirstFollow, Grammar, TerminalandNonTerminal } from "../types/types";
 
 interface GrammarProviderProps {
   grammar: Grammar;
   terminals: TerminalandNonTerminal;
   nonTerminals: TerminalandNonTerminal;
-  first: Record<string, Set<string>>;
-  follow: Record<string, Set<string>>;
+  first: FirstFollow;
+  follow: FirstFollow;
   createGrammar: (rawGrammar: string) => void;
 }
 
