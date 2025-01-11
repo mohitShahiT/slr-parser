@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useGrammar } from "../contexts/GrammarContext";
 
 export const GrammarForm = function () {
-  const [inputGrammar, setInputGrammar] = useState("");
+  const [inputGrammar, setInputGrammar] = useState(`S -> E
+E -> E + T | T
+T -> T * F | F
+F -> id`);
   const [inputString, setInputString] = useState("");
   const { createGrammar, first, follow } = useGrammar();
   const [showFirstFollow, setShowFirstFollow] = useState(false);

@@ -17,9 +17,10 @@ interface GrammarProviderProps {
 }
 
 /*
+S -> E
 E -> E + T | T
 T -> T * F | F
-F -> (E) | id
+F -> id
 */
 
 interface LRItem {
@@ -41,10 +42,10 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [augmentedGrammar, setAugmentedGrammar] = useState<Grammar>([]);
   const [closures, setClosures] = useState<Closure>({});
 
-  function augmentGrammarWithDot(
+  async function augmentGrammarWithDot(
     originalGrammar: Grammar,
     prefix: string
-  ): Grammar {
+  ): Promise<Grammar> {
     if (originalGrammar.length === 0) {
       console.error("The grammar is empty and cannot be augmented.");
       return [];
@@ -68,11 +69,10 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         return [lhs, augmentedRhs];
       }
     );
-    console.log("augmentedRules", augmentedRules);
 
     // Step 5: Combine the new start rule with the augmented original grammar
     const augmentedGrammar: Grammar = [augmentedStartRule, ...augmentedRules];
-
+    setAugmentedGrammar(augmentedGrammar);
     return augmentedGrammar;
   }
 
@@ -119,11 +119,10 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
     const prefix = "•"; // Example prefix (e.g., a dot or another marker)
-    const newAugmentedGrammar = augmentGrammarWithDot(finalGrammar, prefix);
-    console.log("new Augmented Grammar", newAugmentedGrammar);
-    setAugmentedGrammar(newAugmentedGrammar);
-    // here
-
+    const newAugmentedGrammar = await augmentGrammarWithDot(
+      finalGrammar,
+      prefix
+    );
     const newFirst = await calculateFirst(
       finalGrammar,
       [...terminalElements],
@@ -133,12 +132,16 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       ...nonTerminalElements,
     ]);
 
-    findClosure(newAugmentedGrammar, [...nonTerminalElements]);
+    const newClosure = await findClosure(newAugmentedGrammar, [
+      ...nonTerminalElements,
+    ]);
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
     console.log("Non-terminals:", [...nonTerminalElements]);
     console.log("FIRST:", newFirst);
     console.log("FOLLOW:", newFollow);
+    console.log("Closures:", newClosure);
+    console.log("Augmented grammar", newAugmentedGrammar);
   }
 
   function tokenizeRHS(rhs: string): string[] {
@@ -286,7 +289,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return followSets;
   }
 
-  function findClosure(
+  async function findClosure(
     augmentedGrammar: Grammar,
     nonTerminalElements: TerminalandNonTerminal
   ) {
@@ -294,7 +297,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     nonTerminalElements.forEach((symbol) => {
       closures[symbol] = [];
     });
-    console.log(closures, augmentedGrammar);
     augmentedGrammar.forEach((gm) => {
       for (const symbol in closures) {
         if (symbol === gm[0]) {
@@ -306,7 +308,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     let updated = true;
     while (updated) {
       updated = false;
-      console.log("update");
       for (const symbol in closures) {
         let newClosure: Grammar = [];
         closures[symbol].forEach(([_, rule]) => {
@@ -323,7 +324,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     }
 
     setClosures(closures);
-    console.log("closures", closures);
+    return closures;
   }
 
   return (
