@@ -4,8 +4,8 @@ export type FirstFollow = Record<string, Set<string>>;
 
 export type TerminalandNonTerminal = string[];
 
-export type State = Grammar[];
+export type State = Record<string, Grammar>;
 
-export type Goto = Record<string, State>[];
+export type Goto = [string, string][];
 
 export type Closure = Record<string, Grammar>;

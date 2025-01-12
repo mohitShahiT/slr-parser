@@ -4,8 +4,9 @@ import {
   Grammar,
   TerminalandNonTerminal,
   Closure,
+  State,
 } from "../types/types";
-
+import { scanNextChar } from "../utils/scanNextChar";
 interface GrammarProviderProps {
   grammar: Grammar;
   terminals: TerminalandNonTerminal;
@@ -40,7 +41,9 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [first, setFirst] = useState<Record<string, Set<string>>>({});
   const [follow, setFollow] = useState<Record<string, Set<string>>>({});
   const [augmentedGrammar, setAugmentedGrammar] = useState<Grammar>([]);
+  const [states, setStates] = useState<State[]>([]);
   const [closures, setClosures] = useState<Closure>({});
+  const [prefix, setPrefix] = useState("•");
 
   async function augmentGrammarWithDot(
     originalGrammar: Grammar,
@@ -118,7 +121,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setGrammar(finalGrammar);
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
-    const prefix = "•"; // Example prefix (e.g., a dot or another marker)
     const newAugmentedGrammar = await augmentGrammarWithDot(
       finalGrammar,
       prefix
@@ -142,6 +144,22 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     console.log("FOLLOW:", newFollow);
     console.log("Closures:", newClosure);
     console.log("Augmented grammar", newAugmentedGrammar);
+    const states: Grammar[] = [];
+    //loop over
+    const next = await scanNextToken(
+      newAugmentedGrammar,
+      "E",
+      [...terminalElements],
+      [...nonTerminalElements],
+      newClosure
+    );
+    await scanNextToken(
+      next,
+      "+",
+      [...terminalElements],
+      [...nonTerminalElements],
+      newClosure
+    );
   }
 
   function tokenizeRHS(rhs: string): string[] {
@@ -325,6 +343,67 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     setClosures(closures);
     return closures;
+  }
+
+  async function scanNextToken(
+    currentState: Grammar,
+    token: string,
+    terminals: TerminalandNonTerminal,
+    nonTerminals: TerminalandNonTerminal,
+    closures: Closure
+  ): Promise<Grammar> {
+    const symbols = [...terminals, ...nonTerminals];
+    console.log("********Next state function ***********");
+    const nextState: Grammar = [];
+    //shifting the prefix symbol to the right
+    currentState.forEach(([start, production]) => {
+      const prefixIndex = production.indexOf(prefix);
+      if (prefixIndex < 0) {
+        throw new Error(`The grammar has no ${prefix} prefix(scan symbol).`);
+      }
+
+      if (prefixIndex < production.length - 1) {
+        let nextSymbolIndex = prefixIndex + 1;
+        let nextToken: string = "";
+        if (production[nextSymbolIndex] === " ") {
+          nextSymbolIndex++;
+        }
+        while (true) {
+          nextToken = production
+            .slice(prefixIndex + 1, nextSymbolIndex + 1)
+            .split(" ")
+            .join("");
+          if (symbols.includes(nextToken)) break;
+          nextSymbolIndex++;
+        }
+        if (nextSymbolIndex < production.length && nextToken === token) {
+          const newRule = scanNextChar(
+            production,
+            prefixIndex,
+            nextSymbolIndex
+          );
+          nextState.push([start, newRule]);
+        }
+      }
+    });
+    //scan each symbol from the grammar
+
+    const closureToAdd: Set<Grammar> = new Set();
+    nextState.forEach((rule) => {
+      const prodcution = rule[1].split(" ").join("");
+      const prefixIndex = prodcution.indexOf(prefix);
+      if (prefixIndex < prodcution.length - 1) {
+        const nextSymbol = prodcution[prefixIndex + 1];
+        console.log("next symbol", nextSymbol);
+        if (nonTerminals.includes(nextSymbol)) {
+          closureToAdd.add(closures[nextSymbol]);
+        }
+      }
+    });
+    [...closureToAdd].forEach((rule) => nextState.push(...rule));
+    console.log("current state", currentState);
+    console.log("next state", nextState);
+    return nextState;
   }
 
   return (
