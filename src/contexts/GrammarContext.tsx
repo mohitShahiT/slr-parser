@@ -144,7 +144,31 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     console.log("FOLLOW:", newFollow);
     console.log("Closures:", newClosure);
     console.log("Augmented grammar", newAugmentedGrammar);
-    const states: Grammar[] = [];
+    console.log("before start", newAugmentedGrammar);
+    const states: Set<Grammar> = new Set([newAugmentedGrammar]);
+
+    while (true) {
+      const previousLen = states.size;
+      [...states].forEach((state) => {
+        [...terminalElements, ...nonTerminalElements].forEach(
+          async (symbol) => {
+            const nextState = await scanNextToken(
+              state,
+              symbol,
+              [...terminalElements],
+              [...nonTerminalElements],
+              newClosure
+            );
+            states.add(nextState);
+          }
+        );
+      });
+      if (states.size <= previousLen) {
+        break;
+      }
+    }
+    console.log("states", states); //TODO: Verify this for the grammar
+
     //loop over
     const next = await scanNextToken(
       newAugmentedGrammar,
@@ -353,7 +377,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     closures: Closure
   ): Promise<Grammar> {
     const symbols = [...terminals, ...nonTerminals];
-    console.log("********Next state function ***********");
     const nextState: Grammar = [];
     //shifting the prefix symbol to the right
     currentState.forEach(([start, production]) => {
@@ -394,15 +417,14 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       const prefixIndex = prodcution.indexOf(prefix);
       if (prefixIndex < prodcution.length - 1) {
         const nextSymbol = prodcution[prefixIndex + 1];
-        console.log("next symbol", nextSymbol);
         if (nonTerminals.includes(nextSymbol)) {
           closureToAdd.add(closures[nextSymbol]);
         }
       }
     });
     [...closureToAdd].forEach((rule) => nextState.push(...rule));
-    console.log("current state", currentState);
-    console.log("next state", nextState);
+    // console.log("current state", currentState);
+    // console.log("next state", nextState);
     return nextState;
   }
 
