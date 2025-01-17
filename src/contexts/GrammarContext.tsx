@@ -1,6 +1,12 @@
 import { createContext, ReactNode, useContext, useState } from "react";
-import { FirstFollow, Grammar, TerminalandNonTerminal } from "../types/types";
-
+import {
+  FirstFollow,
+  Grammar,
+  TerminalandNonTerminal,
+  Closure,
+  State,
+} from "../types/types";
+import { scanNextChar } from "../utils/scanNextChar";
 interface GrammarProviderProps {
   grammar: Grammar;
   terminals: TerminalandNonTerminal;
@@ -10,6 +16,13 @@ interface GrammarProviderProps {
   augmentedGrammar: Grammar;
   createGrammar: (rawGrammar: string) => void;
 }
+
+/*
+S -> E
+E -> E + T | T
+T -> T * F | F
+F -> id
+*/
 
 interface LRItem {
   first: FirstFollow;
@@ -28,11 +41,14 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [first, setFirst] = useState<Record<string, Set<string>>>({});
   const [follow, setFollow] = useState<Record<string, Set<string>>>({});
   const [augmentedGrammar, setAugmentedGrammar] = useState<Grammar>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [closures, setClosures] = useState<Closure>({});
+  const [prefix, setPrefix] = useState("•");
 
-  function augmentGrammarWithDot(
+  async function augmentGrammarWithDot(
     originalGrammar: Grammar,
     prefix: string
-  ): Grammar {
+  ): Promise<Grammar> {
     if (originalGrammar.length === 0) {
       console.error("The grammar is empty and cannot be augmented.");
       return [];
@@ -44,21 +60,22 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     // Step 2: Define a new start symbol (e.g., `S'`)
     const newStartSymbol = `${originalStartSymbol}'`;
 
-    // Step 3: Create the augmented start rule with the dot
     const augmentedStartRule: [string, string] = [
       newStartSymbol,
       `${prefix}${originalStartSymbol}`,
     ];
 
     // Step 4: Add the dot at the beginning of every RHS in the original grammar
-    const augmentedRules = originalGrammar.map(([lhs, rhs]) => {
-      const augmentedRhs = `${prefix}${rhs}`; // Add the dot to the beginning of the RHS
-      return [lhs, augmentedRhs];
-    });
+    const augmentedRules: [string, string][] = originalGrammar.map(
+      ([lhs, rhs]) => {
+        const augmentedRhs = `${prefix}${rhs}`; // Add the dot to the beginning of the RHS
+        return [lhs, augmentedRhs];
+      }
+    );
 
     // Step 5: Combine the new start rule with the augmented original grammar
     const augmentedGrammar: Grammar = [augmentedStartRule, ...augmentedRules];
-
+    setAugmentedGrammar(augmentedGrammar);
     return augmentedGrammar;
   }
 
@@ -104,24 +121,69 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     setGrammar(finalGrammar);
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
-    const prefix = "•"; // Example prefix (e.g., a dot or another marker)
-    const newAugmentedGrammar = augmentGrammarWithDot(finalGrammar, prefix);
-    console.log(newAugmentedGrammar);
-    setAugmentedGrammar(newAugmentedGrammar);
-    // here
-
+    const newAugmentedGrammar = await augmentGrammarWithDot(
+      finalGrammar,
+      prefix
+    );
     const newFirst = await calculateFirst(
       finalGrammar,
       [...terminalElements],
       [...nonTerminalElements]
     );
-    calculateFollow(finalGrammar, newFirst, [...nonTerminalElements]);
+    const newFollow = await calculateFollow(finalGrammar, newFirst, [
+      ...nonTerminalElements,
+    ]);
 
+    const newClosure = await findClosure(newAugmentedGrammar, [
+      ...nonTerminalElements,
+    ]);
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
     console.log("Non-terminals:", [...nonTerminalElements]);
-    console.log("FIRST:", first);
-    console.log("FOLLOW:", follow);
+    console.log("FIRST:", newFirst);
+    console.log("FOLLOW:", newFollow);
+    console.log("Closures:", newClosure);
+    console.log("Augmented grammar", newAugmentedGrammar);
+    console.log("before start", newAugmentedGrammar);
+    const states: Set<Grammar> = new Set([newAugmentedGrammar]);
+
+    while (true) {
+      const previousLen = states.size;
+      [...states].forEach((state) => {
+        [...terminalElements, ...nonTerminalElements].forEach(
+          async (symbol) => {
+            const nextState = await scanNextToken(
+              state,
+              symbol,
+              [...terminalElements],
+              [...nonTerminalElements],
+              newClosure
+            );
+            states.add(nextState);
+          }
+        );
+      });
+      if (states.size <= previousLen) {
+        break;
+      }
+    }
+    console.log("states", states); //TODO: Verify this for the grammar
+
+    //loop over
+    const next = await scanNextToken(
+      newAugmentedGrammar,
+      "E",
+      [...terminalElements],
+      [...nonTerminalElements],
+      newClosure
+    );
+    await scanNextToken(
+      next,
+      "+",
+      [...terminalElements],
+      [...nonTerminalElements],
+      newClosure
+    );
   }
 
   function tokenizeRHS(rhs: string): string[] {
@@ -220,7 +282,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return firstSets;
   }
 
-  function calculateFollow(
+  async function calculateFollow(
     grammar: Grammar,
     first: FirstFollow,
     nonTerminals: string[]
@@ -266,24 +328,104 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       });
     }
     setFollow(followSets);
+    return followSets;
+  }
 
-    function findClosure(augmentedGrammar: Grammar) {
-      const closures: Record<string, Grammar> = {};
-      nonTerminals.forEach((symbol) => {
-        closures[symbol] = [];
-      });
-      console.log(closures);
-      augmentedGrammar.forEach((gm) => {
-        for (let symbol in closures) {
-          console.log(symbol, gm[0]);
-          if (symbol === gm[0]) {
-            closures[symbol] = [...closures[symbol], gm];
-          }
+  async function findClosure(
+    augmentedGrammar: Grammar,
+    nonTerminalElements: TerminalandNonTerminal
+  ) {
+    const closures: Closure = {};
+    nonTerminalElements.forEach((symbol) => {
+      closures[symbol] = [];
+    });
+    augmentedGrammar.forEach((gm) => {
+      for (const symbol in closures) {
+        if (symbol === gm[0]) {
+          closures[symbol] = [...closures[symbol], gm];
         }
-      });
-      console.log(closures);
+      }
+    });
+
+    let updated = true;
+    while (updated) {
+      updated = false;
+      for (const symbol in closures) {
+        let newClosure: Grammar = [];
+        closures[symbol].forEach(([_, rule]) => {
+          if (nonTerminalElements.includes(rule[1])) {
+            newClosure = [...closures[symbol], ...closures[rule[1]]];
+          }
+        });
+        const unique = Array.from(new Set(newClosure));
+        if (unique.length > closures[symbol].length) {
+          closures[symbol] = unique;
+          updated = true;
+        }
+      }
     }
-    findClosure(augmentedGrammar);
+
+    setClosures(closures);
+    return closures;
+  }
+
+  async function scanNextToken(
+    currentState: Grammar,
+    token: string,
+    terminals: TerminalandNonTerminal,
+    nonTerminals: TerminalandNonTerminal,
+    closures: Closure
+  ): Promise<Grammar> {
+    const symbols = [...terminals, ...nonTerminals];
+    const nextState: Grammar = [];
+    //shifting the prefix symbol to the right
+    currentState.forEach(([start, production]) => {
+      const prefixIndex = production.indexOf(prefix);
+      if (prefixIndex < 0) {
+        throw new Error(`The grammar has no ${prefix} prefix(scan symbol).`);
+      }
+
+      if (prefixIndex < production.length - 1) {
+        let nextSymbolIndex = prefixIndex + 1;
+        let nextToken: string = "";
+        if (production[nextSymbolIndex] === " ") {
+          nextSymbolIndex++;
+        }
+        while (true) {
+          nextToken = production
+            .slice(prefixIndex + 1, nextSymbolIndex + 1)
+            .split(" ")
+            .join("");
+          if (symbols.includes(nextToken)) break;
+          nextSymbolIndex++;
+        }
+        if (nextSymbolIndex < production.length && nextToken === token) {
+          const newRule = scanNextChar(
+            production,
+            prefixIndex,
+            nextSymbolIndex
+          );
+          nextState.push([start, newRule]);
+        }
+      }
+    });
+    //scan each symbol from the grammar
+
+    const closureToAdd: Set<Grammar> = new Set();
+    nextState.forEach((rule) => {
+      const prodcution = rule[1].split(" ").join("");
+      const prefixIndex = prodcution.indexOf(prefix);
+      if (prefixIndex < prodcution.length - 1) {
+        const nextSymbol = prodcution[prefixIndex + 1];
+        if (nonTerminals.includes(nextSymbol)) {
+          closureToAdd.add(closures[nextSymbol]);
+        }
+      }
+    });
+    [...closureToAdd].forEach((rule) => nextState.push(...rule));
+    // console.log("current state", currentState);
+    // console.log("next state", nextState);
+    return nextState;
   }
 
   return (
