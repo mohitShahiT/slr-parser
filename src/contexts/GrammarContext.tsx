@@ -5,6 +5,7 @@ import {
   TerminalandNonTerminal,
   Closure,
   State,
+  StateTransition,
 } from "../types/types";
 import { scanNextChar } from "../utils/scanNextChar";
 interface GrammarProviderProps {
@@ -22,13 +23,10 @@ S -> E
 E -> E + T | T
 T -> T * F | F
 F -> id
-*/
 
-interface LRItem {
-  first: FirstFollow;
-  follow: FirstFollow;
-  createGrammar: (rawGrammar: string) => void;
-}
+S->A A   
+A->aA|b
+*/
 
 const GrammarContext = createContext<GrammarProviderProps | null>(null);
 
@@ -42,6 +40,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [follow, setFollow] = useState<Record<string, Set<string>>>({});
   const [augmentedGrammar, setAugmentedGrammar] = useState<Grammar>([]);
   const [states, setStates] = useState<State[]>([]);
+  const [transitions, setTransitions] = useState<StateTransition[]>([]);
   const [closures, setClosures] = useState<Closure>({});
   const [prefix, setPrefix] = useState("•");
 
@@ -137,6 +136,14 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     const newClosure = await findClosure(newAugmentedGrammar, [
       ...nonTerminalElements,
     ]);
+
+    // Deep comparison function
+    function deepEqual(obj1: Grammar, obj2: Grammar): boolean {
+      // Perform deep comparison logic here based on the structure of Grammar
+      // For example, comparing rules, name, etc.
+      return JSON.stringify(obj1) === JSON.stringify(obj2); // Simple deep comparison using JSON serialization
+    }
+
     console.log("Final Grammar:", finalGrammar);
     console.log("Terminals:", [...terminalElements]);
     console.log("Non-terminals:", [...nonTerminalElements]);
@@ -145,45 +152,77 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     console.log("Closures:", newClosure);
     console.log("Augmented grammar", newAugmentedGrammar);
     console.log("before start", newAugmentedGrammar);
-    const states: Set<Grammar> = new Set([newAugmentedGrammar]);
 
-    while (true) {
-      const previousLen = states.size;
-      [...states].forEach((state) => {
-        [...terminalElements, ...nonTerminalElements].forEach(
-          async (symbol) => {
-            const nextState = await scanNextToken(
-              state,
-              symbol,
-              [...terminalElements],
-              [...nonTerminalElements],
-              newClosure
-            );
-            states.add(nextState);
-          }
-        );
-      });
-      if (states.size <= previousLen) {
-        break;
+    const transitons: StateTransition[] = [];
+    const tempStates: State[] = [
+      {
+        0: newAugmentedGrammar,
+      },
+    ];
+    /*
+    //state transition 
+    [
+      {
+        from: 0
+        scan: symbol
+        to: 2
       }
-    }
-    console.log("states", states); //TODO: Verify this for the grammar
+    ]
 
-    //loop over
-    const next = await scanNextToken(
-      newAugmentedGrammar,
-      "E",
-      [...terminalElements],
-      [...nonTerminalElements],
-      newClosure
-    );
-    await scanNextToken(
-      next,
-      "+",
-      [...terminalElements],
-      [...nonTerminalElements],
-      newClosure
-    );
+    [
+      {
+        I0: {}
+      }
+    ]
+    */
+    let index = 0;
+    let nextStateNum = 1;
+    while (index < tempStates.length) {
+      const [stateNum, state] = Object.entries(tempStates[index])[0];
+      for (const symbol of [...terminalElements, ...nonTerminalElements]) {
+        const nextState = await scanNextToken(
+          state,
+          symbol,
+          [...terminalElements],
+          [...nonTerminalElements],
+          newClosure
+        );
+
+        if (nextState.length > 0) {
+          // Check if the nextState already exists in netTempStates
+          const stateExistsIndex = tempStates.findIndex((existingState) => {
+            return Object.values(existingState).some((existingGrammar) => {
+              return deepEqual(existingGrammar, nextState);
+            });
+          });
+          if (stateExistsIndex === -1) {
+            //does not exist
+            tempStates.push({
+              [nextStateNum]: nextState,
+            });
+            transitons.push({
+              from: Number(stateNum),
+              to: nextStateNum,
+              scanned: symbol,
+            });
+            nextStateNum++;
+          } else {
+            transitons.push({
+              from: Number(stateNum),
+              to: Number(Object.keys(tempStates[stateExistsIndex])[0]),
+              scanned: symbol,
+            });
+          }
+        }
+      }
+      index++;
+    }
+
+    setStates(tempStates);
+    setTransitions(transitons);
+    console.log("index", index);
+    console.log("states", tempStates);
+    console.log("transitions", transitons);
   }
 
   function tokenizeRHS(rhs: string): string[] {
@@ -427,6 +466,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     // console.log("next state", nextState);
     return nextState;
   }
+
+  console.log("states", states); //TODO: Verify this for the grammar
 
   return (
     <GrammarContext.Provider
