@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useGrammar } from "../contexts/GrammarContext";
 import DFACanvas from "./DFACanvas";
+import { DFAData } from "../types/types";
 
 export const GrammarForm = function () {
     const [inputGrammar, setInputGrammar] = useState(`S -> E
@@ -12,7 +13,7 @@ F -> id`);
     const [showFirstFollow, setShowFirstFollow] = useState(false);
     const [showActionGoto, setShowActionGoto] = useState(false);
     const [showStack, setShowStack] = useState(false);
-    const [dfaData, setDfaData] = useState(null);
+    const [dfaData, setDfaData] = useState<DFAData>({ nodes: [], edges: [] });
 
     const handleGrammarChange = function (
         e: React.ChangeEvent<HTMLTextAreaElement>

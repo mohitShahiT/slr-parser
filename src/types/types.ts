@@ -15,3 +15,23 @@ export type StateTransition = {
   scanned: string;
   to: number;
 };
+
+export interface DFANode {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  productions: string[];
+}
+
+export interface DFAEdge {
+  from: string;
+  to: string;
+  label: string;
+}
+
+export interface DFAData {
+  nodes: DFANode[];
+  edges: DFAEdge[];
+}
+

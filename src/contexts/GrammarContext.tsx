@@ -16,6 +16,9 @@ interface GrammarProviderProps {
   follow: Record<string, Set<string>>;
   augmentedGrammar: Grammar;
   createGrammar: (rawGrammar: string) => void;
+  transitions: StateTransition[];
+  closures: Closure;
+  states: State[];
 }
 
 /*
@@ -42,7 +45,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [states, setStates] = useState<State[]>([]);
   const [transitions, setTransitions] = useState<StateTransition[]>([]);
   const [closures, setClosures] = useState<Closure>({});
-  const [prefix, setPrefix] = useState("•");
+  // const [prefix, setPrefix] = useState("•");
+  const prefix = "•";
 
   async function augmentGrammarWithDot(
     originalGrammar: Grammar,
@@ -144,14 +148,14 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       return JSON.stringify(obj1) === JSON.stringify(obj2); // Simple deep comparison using JSON serialization
     }
 
-    console.log("Final Grammar:", finalGrammar);
-    console.log("Terminals:", [...terminalElements]);
-    console.log("Non-terminals:", [...nonTerminalElements]);
-    console.log("FIRST:", newFirst);
-    console.log("FOLLOW:", newFollow);
-    console.log("Closures:", newClosure);
-    console.log("Augmented grammar", newAugmentedGrammar);
-    console.log("before start", newAugmentedGrammar);
+    // console.log("Final Grammar:", finalGrammar);
+    // console.log("Terminals:", [...terminalElements]);
+    // console.log("Non-terminals:", [...nonTerminalElements]);
+    // console.log("FIRST:", newFirst);
+    // console.log("FOLLOW:", newFollow);
+    // console.log("Closures:", newClosure);
+    // console.log("Augmented grammar", newAugmentedGrammar);
+    // console.log("before start", newAugmentedGrammar);
 
     const transitons: StateTransition[] = [];
     const tempStates: State[] = [
@@ -220,9 +224,9 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     setStates(tempStates);
     setTransitions(transitons);
-    console.log("index", index);
-    console.log("states", tempStates);
-    console.log("transitions", transitons);
+    // console.log("index", index);
+    // console.log("states", tempStates);
+    // console.log("transitions", transitons);
   }
 
   function tokenizeRHS(rhs: string): string[] {
@@ -467,8 +471,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return nextState;
   }
 
-  console.log("states", states); //TODO: Verify this for the grammar
-
   return (
     <GrammarContext.Provider
       value={{
@@ -477,6 +479,9 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         nonTerminals,
         first,
         follow,
+        transitions,
+        states,
+        closures,
         createGrammar,
         augmentedGrammar,
       }}
