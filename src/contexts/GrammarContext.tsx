@@ -1,4 +1,10 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   FirstFollow,
   Grammar,
@@ -19,6 +25,8 @@ interface GrammarProviderProps {
   transitions: StateTransition[];
   closures: Closure;
   states: State[];
+  finalState: number | undefined;
+  prefix: string;
 }
 
 /*
@@ -45,6 +53,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [states, setStates] = useState<State[]>([]);
   const [transitions, setTransitions] = useState<StateTransition[]>([]);
   const [closures, setClosures] = useState<Closure>({});
+  const [startSymbol, setStartSymbol] = useState<string | undefined>(undefined);
+  const [finalState, setFinalState] = useState<number | undefined>(undefined);
   // const [prefix, setPrefix] = useState("•");
   const prefix = "•";
 
@@ -59,7 +69,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     // Step 1: Get the original start symbol (LHS of the first production)
     const originalStartSymbol = originalGrammar[0][0];
-
+    setStartSymbol(originalStartSymbol);
     // Step 2: Define a new start symbol (e.g., `S'`)
     const newStartSymbol = `${originalStartSymbol}'`;
 
@@ -122,6 +132,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     });
 
     setGrammar(finalGrammar);
+    setStartSymbol(finalGrammar[0][0]);
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
     const newAugmentedGrammar = await augmentGrammarWithDot(
@@ -181,6 +192,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     */
     let index = 0;
     let nextStateNum = 1;
+    let finalStateDum = undefined;
+    const startS = finalGrammar[0][0];
     while (index < tempStates.length) {
       const [stateNum, state] = Object.entries(tempStates[index])[0];
       for (const symbol of [...terminalElements, ...nonTerminalElements]) {
@@ -200,6 +213,9 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
             });
           });
           if (stateExistsIndex === -1) {
+            nextState.forEach(([lhs, rhs]) => {
+              if (rhs === `${startS}${prefix}`) finalStateDum = nextStateNum;
+            });
             //does not exist
             tempStates.push({
               [nextStateNum]: nextState,
@@ -224,6 +240,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     setStates(tempStates);
     setTransitions(transitons);
+    setFinalState(finalStateDum);
     // console.log("index", index);
     // console.log("states", tempStates);
     // console.log("transitions", transitons);
@@ -471,6 +488,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     return nextState;
   }
 
+  useEffect(() => {}, [states, transitions]);
+
   return (
     <GrammarContext.Provider
       value={{
@@ -484,6 +503,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         closures,
         createGrammar,
         augmentedGrammar,
+        finalState,
+        prefix,
       }}
     >
       {children}
