@@ -60,7 +60,7 @@ const DFACanvas: React.FC<DFACanvasProps> = () => {
     if (!ctx) return;
 
     const levelSpacing = 150; // Vertical spacing between levels
-    const nodeSpacing = 120; // Horizontal spacing between nodes
+    const nodeSpacing = 175; // Horizontal spacing between nodes
     const canvasWidth = canvas.width;
 
     const levels: { [key: string]: DFANode[] } = {};
@@ -133,17 +133,30 @@ const DFACanvas: React.FC<DFACanvasProps> = () => {
         ctx.textAlign = "center";
 
         // Draw the node label
-        ctx.font = "bold 14px sans-serif";
-        ctx.fillText(node.label, node.x, node.y - radius - 10);
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText(node.label, node.x-radius+5, node.y - radius + 18);
         const rule = node.productions.join("\n"); // Multi-line text
         const lines = rule.split("\n"); // Split the text into lines
-        ctx.font = "bold 10px sans-serif";
-        ctx.textAlign = "center"; // Optional: Align text to the center of the node
+        ctx.font = "bold 14px sans-serif";
 
-        lines.forEach((line, index) => {
-          const lineHeight = 10; // Adjust the spacing between lines
-          ctx.fillText(line, node.x, node.y + index * lineHeight);
-        });
+        if (lines.length<= 4) {
+          ctx.textAlign = "center"; // Optional: Align text to the center of the node
+        
+          lines.forEach((line, index) => {
+            const lineHeight = 12; // Adjust the spacing between lines
+            ctx.fillText(line, node.x, node.y+ index * lineHeight);
+          });
+        }
+
+
+        if (lines.length >4) {
+          ctx.textAlign = "start";
+          
+          lines.forEach((line, index) => {
+            const lineHeight = 12; // Adjust the spacing between lines
+            ctx.fillText(line, node.x- radius/2 , node.y -radius/2 + index * lineHeight);
+          });
+        }
 
         // Draw productions
         // node.productions.forEach((production, index) => {
@@ -163,7 +176,7 @@ const DFACanvas: React.FC<DFACanvasProps> = () => {
           const labelY = fromNode.y - fromRadius - offset;
 
           ctx.fillStyle = "#1e293b";
-          ctx.font = "bold 12px sans-serif";
+          ctx.font = "bold 14px sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(label, labelX, labelY);
@@ -204,23 +217,23 @@ const DFACanvas: React.FC<DFACanvasProps> = () => {
           ctx.fill();
 
           ctx.fillStyle = "#1e293b";
-          ctx.font = "bold 12px sans-serif";
+          ctx.font = "bold 15px sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "bottom";
           ctx.fillText(label, midX, midY);
         }
       };
 
-      DFAData?.nodes.forEach((node) => {
-        // console.log(node);
-        drawNode(node);
-      });
+
       DFAData?.edges.forEach((edge) => {
         const fromNode = DFAData.nodes.find((node) => node.id === edge.from);
         const toNode = DFAData.nodes.find((node) => node.id === edge.to);
         if (fromNode && toNode) {
           drawEdge(fromNode, toNode, edge.label);
         }
+      });
+      DFAData?.nodes.forEach((node) => {
+        drawNode(node);
       });
     };
 
