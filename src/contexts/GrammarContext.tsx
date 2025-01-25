@@ -27,6 +27,8 @@ interface GrammarProviderProps {
   states: State[];
   finalState: number | undefined;
   prefix: string;
+  conflict: boolean;
+  setConflict: (val: boolean) => void;
 }
 
 /*
@@ -55,6 +57,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [closures, setClosures] = useState<Closure>({});
   const [startSymbol, setStartSymbol] = useState<string | undefined>(undefined);
   const [finalState, setFinalState] = useState<number | undefined>(undefined);
+  const [conflict, setConflict] = useState<boolean>(false);
   // const [prefix, setPrefix] = useState("•");
   const prefix = "•";
 
@@ -505,6 +508,8 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
         augmentedGrammar,
         finalState,
         prefix,
+        conflict,
+        setConflict,
       }}
     >
       {children}

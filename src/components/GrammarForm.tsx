@@ -13,7 +13,8 @@ function createSLRParsingTable(
   terminals: string[], // Terminal symbols
   nonTerminals: string[], // Non-terminal symbols
   prefix: string,
-  finalState: number | undefined
+  finalState: number | undefined,
+  setConflict: (val: bool) => void
 ): ParsingTable {
   const table: ParsingTable = [];
   const headers = ["State", ...terminals, "$", ...nonTerminals];
@@ -52,7 +53,12 @@ function createSLRParsingTable(
             follow[lhs].forEach((symbol) => {
               const colIndex = headers.indexOf(symbol);
               if (colIndex !== -1) {
-                row[colIndex] = `r${productionIndex}`;
+                if (row[colIndex] === "") {
+                  row[colIndex] = `r${productionIndex}`;
+                } else {
+                  row[colIndex] += `/r${productionIndex}`;
+                  setConflict(true);
+                }
               }
             });
           }
@@ -85,11 +91,14 @@ F -> id`);
     transitions,
     grammar,
     prefix,
+    conflict,
+    setConflict,
   } = useGrammar();
   const [showFirstFollow, setShowFirstFollow] = useState(false);
   const [showActionGoto, setShowActionGoto] = useState(false);
   const [showStack, setShowStack] = useState(false);
   const [tableData, setTableData] = useState<string[][]>([]);
+  const [tableHeaders, setTableHeaders] = useState<string[]>([]);
   const handleGrammarChange = function (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) {
@@ -108,9 +117,10 @@ F -> id`);
     setShowStack(false);
   };
   const handleViewStack = () => {
+    if (grammar.length <= 0) return;
     setShowStack(true);
-    setShowFirstFollow(false);
-    setShowActionGoto(false);
+    // setShowFirstFollow(false);
+    // setShowActionGoto(false);
   };
 
   useEffect(() => {
@@ -122,9 +132,11 @@ F -> id`);
       terminals,
       nonTerminals,
       prefix,
-      finalState
+      finalState,
+      setConflict
     );
     setTableData(tableDatatemp);
+    setTableHeaders(["State", ...terminals, "$", ...nonTerminals]);
   }, [
     states,
     transitions,
@@ -134,7 +146,9 @@ F -> id`);
     grammar,
     follow,
     finalState,
+    setConflict,
   ]);
+  function parseString(inputString: String) {}
 
   const renderTable = (data: string[][], headers: string[]) => {
     return (
@@ -240,10 +254,11 @@ F -> id`);
             placeholder="Type input string here..."
           />
           <button
+            disabled={conflict}
             onClick={handleViewStack}
             className="bg-gradient-to-r from-[#a48ad4] to-[#7554ad] hover:from-[#7554ad] hover:to-[#a48ad4] text-white font-semibold py-2 px-4 rounded transition-colors duration-300 w-full"
           >
-            View Stack
+            {conflict ? "The grammer is not SLR" : "View Stack"}
           </button>
         </div>
         {/* Rules  */}
@@ -258,10 +273,10 @@ F -> id`);
       {/* Right Container */}
       <div className="w-3/5 p-8 flex flex-col bg-[#e8d9f2] rounded-lg m-4 overflow-y-auto">
         <div className="sticky top-0 bg-[#e8d9f2] z-10 mb-6">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">SLR Parser</h1>
-            <p className="text-gray-600">Analyze your grammar with ease.</p>
-          </div>
+          {/* <div className="text-center mb-6"> */}
+          {/* <h1 className="text-3xl font-bold text-gray-800">SLR Parser</h1> */}
+          {/* <p className="text-gray-600">Analyze your grammar with ease.</p> */}
+          {/* </div> */}
         </div>
         {showFirstFollow && (
           <div className="bg-white p-4 rounded-lg shadow-md mb-4">
@@ -291,7 +306,8 @@ F -> id`);
                 //   ["9", "", "r4", "r4", "r4", "", "", ""],
                 //   ["10", "", "r1", "r1", "r1", "", "", ""],
                 // ],
-                ["State", ...terminals, "$", ...nonTerminals]
+                // ["State", ...terminals, "$", ...nonTerminals]
+                tableHeaders
               )}
             </div>
           </div>
