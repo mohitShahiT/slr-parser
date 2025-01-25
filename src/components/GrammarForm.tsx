@@ -122,8 +122,6 @@ F -> id`);
     const inputStack = inputString.trim().split(" ");
     parseString(inputStack);
     setShowStack(true);
-    // setShowFirstFollow(false);
-    // setShowActionGoto(false);
   };
 
   useEffect(() => {
@@ -182,7 +180,7 @@ F -> id`);
         stack.push(rule[0]);
         const index = Number(stack[stack.length - 2]);
         stack.push(tableData[index][tableHeaders.indexOf(rule[0])]);
-        actionString = `Reduce by ${rule[0]}->${rule[1]}`;
+        actionString = `Reduce(${action}) by ${rule[0]}->${rule[1]}`;
       } else {
         console.log(stack, "before break");
         break;
@@ -194,20 +192,11 @@ F -> id`);
     const state = Number(stack[stack.length - 1]);
     const token = inputStack[0];
     const action = tableData[state][tableHeaders.indexOf(token)];
+    tempStackData.push([`${index}`, stack.join(" "), inputStack.join(" ")]);
     if (action === "accept") {
-      tempStackData.push([
-        `${index}`,
-        stack.join(" "),
-        inputStack.join(" "),
-        "accept",
-      ]);
+      tempStackData[tempStackData.length - 1].push("Accept");
     } else {
-      tempStackData.push([
-        `${index}`,
-        stack.join(" "),
-        inputStack.join(" "),
-        "reject",
-      ]);
+      tempStackData[tempStackData.length - 1].push("Reject");
     }
     setParsingStackData(tempStackData);
 
@@ -294,9 +283,9 @@ F -> id`);
               rows={10}
               placeholder="Type the grammar here..."
             />
-            <div className="flex justify-center space-x-4">
+            <div className="flex justify-center space-x-4 w-full">
               <button
-                className="bg-gradient-to-r from-[#a48ad4] to-[#7554ad] hover:from-[#7554ad] hover:to-[#a48ad4] text-white font-semibold py-2 px-4 rounded transition-colors duration-300"
+                className=" w-full bg-gradient-to-r from-[#a48ad4] to-[#7554ad] hover:from-[#7554ad] hover:to-[#a48ad4] text-white font-semibold py-2 px-4 rounded transition-colors duration-300"
                 type="submit"
               >
                 Parse grammar
