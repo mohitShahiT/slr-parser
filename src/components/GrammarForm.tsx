@@ -79,7 +79,7 @@ export const GrammarForm = function () {
 E -> E + T | T
 T -> T * F | F
 F -> id`);
-  const [inputString, setInputString] = useState("");
+  const [inputString, setInputString] = useState("id + id");
   const {
     createGrammar,
     first,
@@ -99,6 +99,7 @@ F -> id`);
   const [showStack, setShowStack] = useState(false);
   const [tableData, setTableData] = useState<string[][]>([]);
   const [tableHeaders, setTableHeaders] = useState<string[]>([]);
+  const [parsingStackData, setParsingStackData] = useState<string[][]>([]);
   const handleGrammarChange = function (
     e: React.ChangeEvent<HTMLTextAreaElement>
   ) {
@@ -118,6 +119,8 @@ F -> id`);
   };
   const handleViewStack = () => {
     if (grammar.length <= 0) return;
+    const inputStack = inputString.trim().split(" ");
+    parseString(inputStack);
     setShowStack(true);
     // setShowFirstFollow(false);
     // setShowActionGoto(false);
@@ -148,7 +151,71 @@ F -> id`);
     finalState,
     setConflict,
   ]);
-  function parseString(inputString: String) {}
+
+  function parseString(inputString: string[]) {
+    if (!inputString.every((token) => terminals.includes(token))) {
+      console.log("Invalid input");
+      return;
+    }
+    const inputStack = [...inputString, "$"];
+    const stack = ["0"];
+    let index = 1;
+    let tempStackData: string[][] = [];
+    while (true) {
+      const state = Number(stack[stack.length - 1]);
+      const token = inputStack[0];
+      const action = tableData[state][tableHeaders.indexOf(token)];
+      let actionString = "";
+      const stackData = [`${index}`, stack.join(" "), inputStack.join(" ")];
+
+      if (action[0] === "s") {
+        stack.push(token);
+        stack.push(action[1]);
+        actionString = `Shift(${action})`;
+        inputStack.shift();
+      } else if (action[0] === "r") {
+        const rule = grammar[Number(action[1])];
+        for (let i = 0; i < 2 * rule[1].split(" ").length; i++) {
+          stack.pop();
+        }
+
+        stack.push(rule[0]);
+        const index = Number(stack[stack.length - 2]);
+        stack.push(tableData[index][tableHeaders.indexOf(rule[0])]);
+        actionString = `Reduce by ${rule[0]}->${rule[1]}`;
+      } else {
+        console.log(stack, "before break");
+        break;
+      }
+      stackData.push(actionString);
+      tempStackData = [...tempStackData, stackData];
+      index++;
+    }
+    const state = Number(stack[stack.length - 1]);
+    const token = inputStack[0];
+    const action = tableData[state][tableHeaders.indexOf(token)];
+    if (action === "accept") {
+      tempStackData.push([
+        `${index}`,
+        stack.join(" "),
+        inputStack.join(" "),
+        "accept",
+      ]);
+    } else {
+      tempStackData.push([
+        `${index}`,
+        stack.join(" "),
+        inputStack.join(" "),
+        "reject",
+      ]);
+    }
+    setParsingStackData(tempStackData);
+
+    // console.log("token", token, newString);
+    // console.log(tableHeaders.indexOf());
+    // while (true) {}
+    // console.log(string2Parse);
+  }
 
   const renderTable = (data: string[][], headers: string[]) => {
     return (
@@ -258,14 +325,14 @@ F -> id`);
             onClick={handleViewStack}
             className="bg-gradient-to-r from-[#a48ad4] to-[#7554ad] hover:from-[#7554ad] hover:to-[#a48ad4] text-white font-semibold py-2 px-4 rounded transition-colors duration-300 w-full"
           >
-            {conflict ? "The grammer is not SLR" : "View Stack"}
+            {conflict ? "Can't parse as the grammer is not SLR" : "View Stack"}
           </button>
         </div>
         {/* Rules  */}
         {grammar.length > 0 && (
           <div>
             {grammar.map(([lhs, rhs], i) => {
-              return <p>{`r${i}: ${lhs}->${rhs}`}</p>;
+              return <p key={i}>{`r${i}: ${lhs}->${rhs}`}</p>;
             })}
           </div>
         )}
@@ -320,12 +387,13 @@ F -> id`);
             </h3>
             <div className="text-left">
               {renderTable(
-                [
-                  ["1", "0", "id$", "s3"],
-                  ["2", "0id3", "$", "r2"],
-                  ["3", "0F2", "$", "r1"],
-                  ["4", "0E1", "$", "acc"],
-                ],
+                parsingStackData,
+                // [
+                //   ["1", "0", "id$", "s3"],
+                //   ["2", "0id3", "$", "r2"],
+                //   ["3", "0F2", "$", "r1"],
+                //   ["4", "0E1", "$", "acc"],
+                // ],
                 ["S.N.", "Stack", "Input", "Action"]
               )}
             </div>

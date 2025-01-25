@@ -51,7 +51,6 @@ export interface DFACanvasProps {
 const DFACanvas: React.FC<DFACanvasProps> = () => {
   const { states, transitions } = useGrammar();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  console.log(states, transitions);
 
   useEffect(() => {
     if (!states.length || !transitions.length || !canvasRef.current) return;
