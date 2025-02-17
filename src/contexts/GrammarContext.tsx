@@ -112,6 +112,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       const [lhs, rhs] = rule.split("->").map((part) => part.trim());
 
       if (!lhs || !rhs) {
+        alert("Enter valid Grammar")
         console.warn(`Skipping invalid rule: ${rule}`);
         return;
       }
@@ -263,13 +264,13 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
           currentToken = "";
         }
       } else if (/[A-Z]/.test(char)) {
-        if (currentToken && !/[A-Z]/.test(currentToken[0])) {
+        if (currentToken && !/[A-Z]/.test(currentToken[0])) { // terminal
           tokens.push(currentToken);
           currentToken = "";
         }
         currentToken += char;
       } else {
-        if (currentToken && /[A-Z]/.test(currentToken[0])) {
+        if (currentToken && /[A-Z]/.test(currentToken[0])) { // non-Terminal
           tokens.push(currentToken);
           currentToken = "";
         }
