@@ -14,7 +14,7 @@ function createSLRParsingTable(
   nonTerminals: string[], // Non-terminal symbols
   prefix: string,
   finalState: number | undefined,
-  setConflict: (val: bool) => void
+  setConflict: (val: boolean) => void
 ): ParsingTable {
   const table: ParsingTable = [];
   const headers = ["State", ...terminals, "$", ...nonTerminals];
@@ -115,6 +115,7 @@ F -> id`);
     createGrammar(inputGrammar);
     setShowFirstFollow(true);
     setShowActionGoto(true);
+    setParsingStackData([]);
     setShowStack(false);
   };
   const handleViewStack = () => {

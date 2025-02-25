@@ -106,6 +106,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       .trim();
 
     const rules = normalizedGrammar.split(/ (?=[A-Z]+ ->)/);
+    console.log("rules", rules, normalizedGrammar);
     const finalGrammar: Grammar = [];
 
     rules.forEach((rule) => {
