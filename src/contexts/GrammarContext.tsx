@@ -55,7 +55,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
   const [states, setStates] = useState<State[]>([]);
   const [transitions, setTransitions] = useState<StateTransition[]>([]);
   const [closures, setClosures] = useState<Closure>({});
-  const [startSymbol, setStartSymbol] = useState<string | undefined>(undefined);
   const [finalState, setFinalState] = useState<number | undefined>(undefined);
   const [conflict, setConflict] = useState<boolean>(false);
   // const [prefix, setPrefix] = useState("•");
@@ -72,7 +71,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
 
     // Step 1: Get the original start symbol (LHS of the first production)
     const originalStartSymbol = originalGrammar[0][0];
-    setStartSymbol(originalStartSymbol);
     // Step 2: Define a new start symbol (e.g., `S'`)
     const newStartSymbol = `${originalStartSymbol}'`;
 
@@ -137,7 +135,6 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
     });
 
     setGrammar(finalGrammar);
-    setStartSymbol(finalGrammar[0][0]);
     setTerminals([...terminalElements]);
     setNonTerminals([...nonTerminalElements]);
     const newAugmentedGrammar = await augmentGrammarWithDot(
@@ -149,7 +146,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       [...terminalElements],
       [...nonTerminalElements]
     );
-    const newFollow = await calculateFollow(finalGrammar, newFirst, [
+    await calculateFollow(finalGrammar, newFirst, [
       ...nonTerminalElements,
     ]);
 
@@ -218,7 +215,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
             });
           });
           if (stateExistsIndex === -1) {
-            nextState.forEach(([lhs, rhs]) => {
+            nextState.forEach(([, rhs]) => {
               if (rhs === `${startS}${prefix}`) finalStateDum = nextStateNum;
             });
             //does not exist
@@ -417,7 +414,7 @@ export const GrammarProvider: React.FC<{ children: ReactNode }> = function ({
       updated = false;
       for (const symbol in closures) {
         let newClosure: Grammar = [];
-        closures[symbol].forEach(([_, rule]) => {
+        closures[symbol].forEach(([, rule]) => {
           if (nonTerminalElements.includes(rule[1])) {
             newClosure = [...closures[symbol], ...closures[rule[1]]];
           }

@@ -42,7 +42,7 @@ function createSLRParsingTable(
 
     // Handle reductions
     const items = states[stateIndex];
-    Object.entries(items).forEach(([_, rules]) => {
+    Object.entries(items).forEach(([, rules]) => {
       rules.forEach(([lhs, rhs]) => {
         if (rhs.endsWith(prefix)) {
           // Found a complete item (e.g., "E → E+T.")

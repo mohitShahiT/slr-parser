@@ -104,7 +104,7 @@ const DFACanvas: React.FC<DFACanvasProps> = () => {
     assignLevels("0", 0); // Start from the initial state (assumed to be "0")
 
     // Calculate positions
-    Object.entries(levels).forEach(([level, nodes], levelIndex) => {
+    Object.entries(levels).forEach(([, nodes], levelIndex) => {
       const y = levelIndex * levelSpacing + 50; // Adjust y position based on level
       const totalNodes = nodes.length;
       const startX = (canvasWidth - totalNodes * nodeSpacing) / 2; // Center nodes
