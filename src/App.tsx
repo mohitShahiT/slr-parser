@@ -7,7 +7,7 @@ function App() {
         <h1 className=" text-center text-3xl font-bold pt-3">SLR Parser</h1>
         <div className="mb-2">
           <a href="https://github.com/mohitShahiT/slr-parser" target="blank">
-            <img className="h-8" src="src/assets/github-icon.png"></img>
+            <img className="h-8" src="/github-icon.png"></img>
           </a>
         </div>
       </div>
